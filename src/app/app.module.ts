@@ -10,6 +10,15 @@ import { UsersModule } from './users/users.module';
 // Material
 import { MatToolbarModule } from '@angular/material/toolbar';
 
+// Ngrx
+import { EffectsModule } from '@ngrx/effects';
+import { StoreDevtoolsModule } from '@ngrx/store-devtools';
+import { StoreModule } from '@ngrx/store';
+
+import { ApiUsersEffects } from './store/api-users/effects';
+import { reducers } from './store';
+import { LocalUsersEffects } from './store/local-users/effects';
+
 
 @NgModule({
   declarations: [
@@ -23,6 +32,14 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 
     // Material
     MatToolbarModule,
+
+    // Ngrx
+    StoreModule.forRoot(reducers),
+    StoreDevtoolsModule.instrument(),
+    EffectsModule.forRoot([
+      ApiUsersEffects,
+      LocalUsersEffects
+    ])
   ],
   providers: [],
   bootstrap: [AppComponent]

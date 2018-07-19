@@ -1,58 +1,25 @@
-
-import {switchMap} from 'rxjs/operators';
 import { Component, OnInit, ViewChild, Inject } from '@angular/core';
-import { NgForm, FormGroupDirective, FormControl, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  FormGroupDirective,
+  NgForm,
+  Validators
+} from '@angular/forms';
 
 import { MatDialogRef } from '@angular/material/dialog';
-import { MatDatepickerInputEvent, MatSnackBar, MAT_DIALOG_DATA, ErrorStateMatcher } from '@angular/material';
 
-import { LocalUser } from '../shared/local-user.model';
+import { MatSnackBar, MAT_DIALOG_DATA, ErrorStateMatcher } from '@angular/material';
+
+import { LocalUser } from '../shared/models/local-user.model';
 import { LocalUserService } from '../shared/local-user.service';
 
 import { Observable } from 'rxjs';
-
-
-/**
- * Contains all the Form Controls Validators
- */
-class FormControlValidators {
-  /**
-   * Control the emails errors
-   */
-  emailFormControl = new FormControl('', [
-    Validators.required,
-    Validators.email
-  ]);
-
-  /**
-   * Control the names errors
-   */
-  firstNameFormControl = new FormControl('', [
-    Validators.required,
-    Validators.pattern(/^.*(.*\w){2,}.*$/),
-  ]);
-
-  /**
-   * Control the names errors
-   */
-  secondNameFormControl = new FormControl('', [
-    Validators.required,
-    Validators.pattern(/^.*(.*\w){2,}.*$/),
-  ]);
-
-  /**
-   * Control the names errors
-   */
-  phoneFormControl = new FormControl('', [
-    Validators.required,
-    Validators.pattern(/^\d{9,15}$/),
-  ]);
-
-  /**
-   * Match errors
-   */
-  matcher = new MyErrorStateMatcher();
-}
+import { Store, select } from '@ngrx/store';
+import { AppState, selectLocalUsersLoadingCUD } from '../../store';
+import { CreateLocalUser, UpdateLocalUser } from '../../store/local-users/actions';
 
 /** Error when invalid control is dirty, touched, or submitted. */
 class MyErrorStateMatcher implements ErrorStateMatcher {
@@ -67,17 +34,30 @@ class MyErrorStateMatcher implements ErrorStateMatcher {
   templateUrl: './create-edit-user.component.html',
   styleUrls: ['./create-edit-user.component.scss'],
 })
-export class CreateEditUserComponent extends FormControlValidators implements OnInit {
-
-  /**
-   * Indicate whether the modal is editing or creating a user
-   */
-  onEdit: boolean;
+export class CreateEditUserComponent implements OnInit {
 
   /**
    * Reference to the form
    */
   @ViewChild('userForm') userForm: NgForm;
+
+  /**
+   * Match errors
+   */
+  matcher: MyErrorStateMatcher;
+
+  /**
+   * Group of validations to validate the form
+   *
+   * @type {FormGroup}
+   * @memberof CreateEditUserComponent
+   */
+  myForm: FormGroup;
+
+  /**
+   * Indicate whether the modal is editing or creating a user
+   */
+  onEdit: boolean;
 
   /**
    * The start date of the date picker
@@ -98,19 +78,21 @@ export class CreateEditUserComponent extends FormControlValidators implements On
 
   /**
    * To indicate if the component is loading
+   *
+   * @type {Observable<boolean>}
+   * @memberof LocalUsersComponent
    */
-  loading: boolean;
+  loading: Observable<boolean>;
 
   constructor(
-    public dialogRef: MatDialogRef<CreateEditUserComponent>,
     @Inject(MAT_DIALOG_DATA) public userToEdit: any,
+    public dialogRef: MatDialogRef<CreateEditUserComponent>,
+    private fb: FormBuilder,
+    private localUserService: LocalUserService,
     private snackBar: MatSnackBar,
-    private localUserService: LocalUserService
+    private store: Store<AppState>
   ) {
-    super();
-
-    // We are loading
-    this.loading = false;
+    this.loading = this.store.pipe(select(selectLocalUsersLoadingCUD));
 
     // Set the start dates
     this.startDate = new Date();
@@ -129,9 +111,41 @@ export class CreateEditUserComponent extends FormControlValidators implements On
       this.user = this.userToEdit;
       this.onEdit = true;
     }
+
+    this.matcher = new MyErrorStateMatcher();
   }
 
   ngOnInit() {
+    this.myForm = this.fb.group({
+      /**
+       * Control the emails errors
+       */
+      email: [
+        '',
+        [Validators.required, Validators.email, this.validateEmail.bind(this)],
+      ],
+      /**
+       * Control the names errors
+       */
+      firstName: [
+        '',
+        [Validators.required, Validators.pattern(/^.*(.*\w){2,}.*$/)]
+      ],
+      /**
+       * Control the names errors
+       */
+      secondName: [
+        '',
+        [Validators.required, Validators.pattern(/^.*(.*\w){2,}.*$/)]
+      ],
+      /**
+       * Control the names errors
+       */
+      phone: [
+        '',
+        [Validators.required, Validators.pattern(/^\d{9,15}$/)]
+      ]
+    });
   }
 
   /**
@@ -148,12 +162,9 @@ export class CreateEditUserComponent extends FormControlValidators implements On
 
   /**
    * Catch the event of the form submit and go to save the user
-   * after that show a message
+   * after that, show a message
    */
   onSubmit() {
-    // Indicate that we are loading
-    this.loading = true;
-
     // If we are editing or creating
     if (this.onEdit) {
       this.updateUser();
@@ -163,83 +174,43 @@ export class CreateEditUserComponent extends FormControlValidators implements On
   }
 
   /**
+   * Trigger the submit of the new user form
+   */
+  submitForm() {
+    this.userForm.ngSubmit.next();
+  }
+
+  /**
    * Save the new user information
    */
   private saveNewUser() {
-    this.localUserService.saveUser(this.user).pipe(
-      // Close the modal on success
-      switchMap(() => this.closeModal('created')))
-      // When the modal is closed....
-      .subscribe(
-        // next
-        () => {
-          // Show a snack bar to indicate the operation
-          this.snackBar.open('User Saved Successfully', 'GOT IT!', {
-            duration: 2000,
-          });
-        },
-        // error
-        (err) => {
-          // If the err is because the email is duplicate
-          if (err.type === 'duplicateEmail') {
-            console.log('error', err);
-            this.loading = false;
-            this.emailFormControl.setErrors({ duplicate: true});
-          } else {
-            console.log('error', err);
-            this.loading = false;
-
-            // Indicate the error
-            const snackRef = this.snackBar.open('Connection Error', null, {
-              duration: 10000
-            });
-          }
-        },
-        // complete
-        () => {
-          this.loading = false;
-        }
-      );
+    this.store.dispatch(new CreateLocalUser(this.user));
   }
 
   /**
    * Update the current edited user
    */
   private updateUser() {
-    this.localUserService.updateUser(this.user).pipe(
-      // Close the modal on success
-      switchMap(() => this.closeModal('updated')))
-      // When the modal is closed....
-      .subscribe(
-        // next
-        () => {
-          // Show a snack bar to indicate the operation
-          this.snackBar.open('User Updated Successfully', 'GOT IT!', {
-            duration: 2000,
-          });
-        },
-        // error
-        (err) => {
-          console.log('error', err);
-          this.loading = false;
-
-          // Indicate the error
-          const snackRef = this.snackBar.open('Connection Error', null, {
-            duration: 10000
-          });
-        },
-        // complete
-        () => {
-          this.loading = false;
-        }
-      );
+    this.store.dispatch( new UpdateLocalUser(this.user));
   }
 
   /**
-   * Trigger the submit of the new user form
+   * A function to validate if the email already exits among
+   * the existing users
+   *
+   * @private
+   * @param {AbstractControl} control
+   * @returns null | { duplicate: true }
+   * @memberof CreateEditUserComponent
    */
-  submitForm() {
-    // console.log(this.userForm);
-    this.userForm.ngSubmit.next();
+  private validateEmail(control: AbstractControl) {
+    // if we are editing don't make this validation
+    if (this.onEdit) {
+      return null;
+    }
+
+    const hasError = this.localUserService.doesEmailExists(control.value);
+
+    return hasError ? { duplicate: true } : null;
   }
 }

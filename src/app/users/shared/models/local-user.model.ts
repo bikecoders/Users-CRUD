@@ -1,7 +1,9 @@
+import { BasicModel } from '../../../shared/basic-model/basic.model';
+
 /**
  *  Model of the local user
  */
-export class LocalUser {
+export class LocalUser extends BasicModel<LocalUser> {
 
   /**
    * A unique identifier
@@ -48,28 +50,13 @@ export class LocalUser {
    */
   updatedAt?: Date;
 
-  constructor(
-    firstName: string,
-    lastName: string,
-    email: string,
-    phone: string,
-    birthDate: Date | string,
-    id?: string,
-    createdAt?: Date,
-    updatedAt?: Date
-  ) {
-    // Set the ID or generate a new one
-    this.id = id;
-
-    this.firstName = firstName;
-    this.lastName = lastName;
-    this.email = email;
-    this.phone = phone;
+  constructor(localUser: LocalUser) {
+    super(localUser);
 
     // Set Dates
-    this.birthDate = this.transformDate(birthDate);
-    this.createdAt = this.transformDate(createdAt);
-    this.updatedAt = this.transformDate(updatedAt);
+    this.birthDate = this.transformDate(this.birthDate);
+    this.createdAt = this.transformDate(this.createdAt);
+    this.updatedAt = this.transformDate(this.updatedAt);
 
     // Calculate the age
     this.setAge();
@@ -81,7 +68,7 @@ export class LocalUser {
    * @returns {LocalUser} the empty user
    */
   static initEmptyUser(): LocalUser {
-    return new LocalUser('', '', '', '', null);
+    return new LocalUser({} as any);
   }
 
   /**

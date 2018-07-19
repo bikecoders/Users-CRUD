@@ -1,12 +1,24 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 
-import { MatTableDataSource, MatTable, MatDialog, MatSnackBar } from '@angular/material';
+import { MatTableDataSource, MatTable, MatDialog, MatSnackBar, MatDialogRef } from '@angular/material';
 
 import { DeleteConfirmationComponent } from './delete-confirmation/delete-confirmation.component';
 import { CreateEditUserComponent } from '../create-edit-user/create-edit-user.component';
 
-import { LocalUserService } from '../shared/local-user.service';
-import { LocalUser } from '../shared/local-user.model';
+import { LocalUser } from '../shared/models/local-user.model';
+
+import { Observable } from 'rxjs';
+import { Store, select } from '@ngrx/store';
+import {
+  AppState,
+  selectLocalUserCUDFailed,
+  selectLocalUserCUDSuccess,
+  selectLocalUsers,
+  selectLocalUsersLoadingReading
+} from '../../store';
+import { ReadLocalUsers, CUDSuccessActions } from '../../store/local-users/actions';
+import { filter } from 'rxjs/operators';
+import { CUDSuccessState } from '../../store/local-users/reducers';
 
 @Component({
   selector: 'app-local-users',
@@ -25,21 +37,6 @@ export class LocalUsersComponent implements OnInit {
   }
 
   /**
-   * Reference for user list that is on the LocalUserService
-   */
-  users: Array<LocalUser>;
-
-  /**
-   * To indicate if the component is loading
-   */
-  loading: boolean;
-
-  /**
-   * The data source of the table
-   */
-  dataSource: MatTableDataSource<LocalUser>;
-
-  /**
    * The columns of the table
    */
   readonly displayedColumns = [
@@ -53,32 +50,94 @@ export class LocalUsersComponent implements OnInit {
     'actions',
   ];
 
+  /**
+   * To indicate if the component is loading
+   *
+   * @type {Observable<boolean>}
+   * @memberof LocalUsersComponent
+   */
+  loading: Observable<boolean>;
+
+  /**
+   * The data source of the table
+   */
+  dataSource: MatTableDataSource<LocalUser>;
+
+  /**
+   * There list of users is Empty
+   *
+   * @type {boolean}
+   * @memberof LocalUsersComponent
+   */
+  isEmpty: boolean;
+
+  /**
+   * A reference of the current dialog present
+   *
+   * @private
+   * @type {MatDialogRef<CreateEditUserComponent>}
+   * @memberof UsersComponent
+   */
+  private dialogRef: MatDialogRef<CreateEditUserComponent | DeleteConfirmationComponent>;
+
   constructor(
-    private localUserService: LocalUserService,
     private snackBar: MatSnackBar,
+    private store: Store<AppState>,
     private dialog: MatDialog
   ) {
-    // We are loading
-    this.loading = true;
+    this.loading = this.store.pipe(select(selectLocalUsersLoadingReading));
 
-    this.localUserService.isLoading()
-      .subscribe(() => {
-        // Update the rows and indicate that the load time finish
+    this.store.pipe(select(selectLocalUsers))
+      .subscribe((users) => {
+        this.isEmpty = users.length === 0;
+        this.dataSource = new MatTableDataSource(users);
+      });
 
-        // Render the table if there is something to show
-        if (this.users.length !== 0) {
-          this.updateRows();
+    this.store.dispatch(new ReadLocalUsers());
+
+    // Subscribe to user created to close the modal and launch a toast to give feedback
+    this.store.pipe(
+      select(selectLocalUserCUDSuccess),
+      // Ignore undefined values
+      filter(userCUD => !!userCUD && userCUD.onAction !== CUDSuccessActions.Create)
+    )
+      .subscribe((userCUD: CUDSuccessState) => {
+        // Close the modal
+        this.dialogRef.close();
+
+        let verb: string;
+
+        switch (userCUD.onAction) {
+
+          case CUDSuccessActions.Update:
+            verb = 'Updated';
+          break;
+
+          case CUDSuccessActions.Delete:
+            verb = 'Deleted';
+            break;
         }
 
-        this.loading = false;
+        // Show a snack bar to indicate the operation
+        this.snackBar.open(`User ${verb} Successfully`, 'GOT IT!', {
+          duration: 2000,
+        });
+      });
+
+    // Detect when a CUD error occur and display a snackbar
+    this.store.pipe(
+      select(selectLocalUserCUDFailed),
+      // Only when the error is true
+      filter((hasError: boolean) => hasError)
+    )
+      .subscribe(() => {
+        this.snackBar.open('Connection Error', 'OK', {
+          duration: 10000
+        });
       });
   }
 
   ngOnInit() {
-    this.users = this.localUserService.users;
-    // Init the data source
-    this.dataSource = new MatTableDataSource(this.users);
-
     // Change the default filtering to filter only by email
     this.dataSource.filterPredicate = this.filterByEmail;
   }
@@ -110,55 +169,9 @@ export class LocalUsersComponent implements OnInit {
    */
   deleteUser(user: LocalUser) {
     // Open the confirmation dialog
-    const dialogRef = this.dialog.open(DeleteConfirmationComponent, {
+    this.dialogRef = this.dialog.open(DeleteConfirmationComponent, {
       data: user
     });
-
-    // what to do if the user says "YES I WANT DELETE"
-    const deleteUserFun = (userToDelete: LocalUser) => {
-      // If when closing we receive a userID means the the users accepts
-      if (userToDelete) {
-        // Indicate that we are loading
-        this.loading = true;
-
-        // Delete user
-        this.localUserService.deleteUser(userToDelete)
-          // On success update table and display a notification
-          .subscribe(
-            // Completed successfully
-            () => {
-              this.loading = false;
-              this.updateRows();
-              // Show a snack bar to indicate the operation
-              this.snackBar.open('User Deleted Successfully', 'GOT IT!', {
-                duration: 2000,
-              });
-            },
-            // On error
-            (err) => {
-              this.loading = false;
-              // Indicate the error
-              const snackRef = this.snackBar.open('Connection Error', 'RETRY', {
-                duration: 10000
-              });
-
-              // If the user clicks on retry call the function again to make the request
-              snackRef.onAction()
-                .subscribe(
-                  () => {
-                    // Call itself to repeat the process
-                    deleteUserFun(userToDelete);
-                  }
-                );
-            }
-          );
-      }
-    };
-
-    // When the dialog is closed it receive the user response
-    dialogRef.afterClosed().subscribe(
-      deleteUserFun
-    );
   }
 
   /**
@@ -166,26 +179,21 @@ export class LocalUsersComponent implements OnInit {
    * @param user
    */
   editUser(user: LocalUser) {
-    const dialogRef = this.dialog.open(CreateEditUserComponent, {
+    this.dialogRef = this.dialog.open(CreateEditUserComponent, {
       width: '50%',
       maxWidth: '500px',
       minWidth: '344px',
-      data: Object.assign(LocalUser.initEmptyUser(), user) as LocalUser
+      data: new LocalUser(user)
     });
-
-    // When the dialog closes, update the rows, probably a new user was edited
-    dialogRef.afterClosed().subscribe(
-      () => this.updateRows()
-    );
   }
 
   /**
    * Function to overwrite the custom filtering Material Table
    *
    * @param data localUser to filter
-   * @param filter The string to search for
+   * @param criteria The string to search for
    */
-  private filterByEmail(data: LocalUser, filter: string): boolean {
-    return data.email.search(filter) !== -1;
+  private filterByEmail(data: LocalUser, criteria: string): boolean {
+    return data.email.search(criteria) !== -1;
   }
 }

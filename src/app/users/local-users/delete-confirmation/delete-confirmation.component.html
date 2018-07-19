@@ -1,5 +1,7 @@
 <h1 mat-dialog-title>Are you sure?</h1>
 <div mat-dialog-content>
+  <ngx-loading [show]="loading | async"></ngx-loading>
+
   <section class="mat-typography">
     <p>Do you want to <b>delete</b> the user <b>{{userToDelete.getFullName()}}</b></p>
   </section>
@@ -7,5 +9,5 @@
 <!-- Actions -->
 <div mat-dialog-actions>
   <button mat-button cdkFocusInitial (click)="closeModal()">Cancel</button>
-  <button mat-button [mat-dialog-close]="userToDelete" color="warn">Delete</button>
+  <button mat-button (click)="deleteUser()" color="warn">Delete</button>
 </div>

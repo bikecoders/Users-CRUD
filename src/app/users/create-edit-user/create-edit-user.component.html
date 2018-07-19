@@ -2,23 +2,29 @@
 
 <!-- content -->
 <div mat-dialog-content>
-  <ngx-loading [show]="loading"></ngx-loading>
+  <ngx-loading [show]="loading | async"></ngx-loading>
 
   <small class="md-warn mat-caption message">The fields with * are required</small>
 
-  <form (ngSubmit)="onSubmit()" #userForm="ngForm" class="user-fields">
+  <form
+    (ngSubmit)="onSubmit()"
+    [formGroup]="myForm"
+    #userForm="ngForm"
+    class="user-fields">
 
     <!-- first name -->
     <mat-form-field>
       <input
         matInput
-        [formControl]="firstNameFormControl" [errorStateMatcher]="matcher"
+        formControlName="firstName" [errorStateMatcher]="matcher"
         [(ngModel)]="user.firstName" name="firstName"
         placeholder="First Name" required>
-      <mat-error *ngIf="firstNameFormControl.hasError('pattern') && !firstNameFormControl.hasError('required')">
+      <mat-error
+        *ngIf="myForm.get('firstName').hasError('pattern') &&
+          !myForm.get('firstName').hasError('required')">
         The first name should have at least <b>2</b> characters
       </mat-error>
-      <mat-error *ngIf="firstNameFormControl.hasError('required')">
+      <mat-error *ngIf="myForm.get('firstName').hasError('required')">
         First Name is required
       </mat-error>
     </mat-form-field>
@@ -27,15 +33,17 @@
     <mat-form-field>
       <input
         matInput
-        [formControl]="secondNameFormControl" [errorStateMatcher]="matcher"
+        formControlName="secondName" [errorStateMatcher]="matcher"
         [(ngModel)]="user.lastName" name="lastName"
         pattern = "^.*(.*\w){2,}.*$"
         type="text" placeholder="Last Name" required>
-      <mat-error *ngIf="secondNameFormControl.hasError('pattern') && !secondNameFormControl.hasError('required')">
+      <mat-error
+        *ngIf="myForm.get('secondName').hasError('pattern') &&
+          !myForm.get('secondName').hasError('required')">
         The last name should have at least
         <b>2</b> characters
       </mat-error>
-      <mat-error *ngIf="secondNameFormControl.hasError('required')">
+      <mat-error *ngIf="myForm.get('secondName').hasError('required')">
         Last Name is required
       </mat-error>
     </mat-form-field>
@@ -44,34 +52,37 @@
     <mat-form-field>
       <input
         matInput
-        [formControl]="emailFormControl" [errorStateMatcher]="matcher"
+        formControlName="email" [errorStateMatcher]="matcher"
         [(ngModel)]="user.email" name="email"
         placeholder="Email" required
         [readonly]="onEdit"
         >
-      <mat-error *ngIf="emailFormControl.hasError('email') && !emailFormControl.hasError('required')">
+      <mat-error
+        *ngIf="myForm.get('email').hasError('email') &&
+          !myForm.get('email').hasError('required')">
         Please enter a valid email address
       </mat-error>
-      <mat-error *ngIf="emailFormControl.hasError('required')">
+      <mat-error *ngIf="myForm.get('email').hasError('required')">
         Email is required
       </mat-error>
-      <mat-error *ngIf="emailFormControl.hasError('duplicate')">
+      <mat-error *ngIf="myForm.get('email').hasError('duplicate')">
         The email already exists
       </mat-error>
     </mat-form-field>
 
     <!-- phone -->
     <mat-form-field>
-      <!-- pattern = "^\d{9,15}$" -->
       <input
         matInput
-        [formControl]="phoneFormControl" [errorStateMatcher]="matcher"
+        formControlName="phone" [errorStateMatcher]="matcher"
         [(ngModel)]="user.phone" name="phone"
         type="text" placeholder="Phone Number" required>
-      <mat-error *ngIf="phoneFormControl.hasError('pattern') && !phoneFormControl.hasError('required')">
+      <mat-error *ngIf="myForm.get('phone').hasError('pattern') &&
+        !myForm.get('phone').hasError('required')">
         The phone number must between <b>9 and 15 digits</b>
       </mat-error>
-      <mat-error *ngIf="phoneFormControl.hasError('required')">
+      <mat-error
+        *ngIf="myForm.get('phone').hasError('required')">
         Phone is required
       </mat-error>
     </mat-form-field>
@@ -79,6 +90,7 @@
     <!-- birth date -->
     <mat-form-field>
       <input matInput
+        [ngModelOptions]="{standalone: true}"
         [(ngModel)]="user.birthDate" name="birthDate"
         [matDatepicker]="picker"
         [max]="maxDate"
@@ -91,6 +103,7 @@
     <!-- age -->
     <mat-form-field>
       <input
+        [ngModelOptions]="{standalone: true}"
         matInput
         [(ngModel)]="user.age" name="age"
         type="text" placeholder="Age" readonly>

@@ -1,8 +1,11 @@
 import { Component, OnInit, Inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
-import { LocalUser } from '../../shared/local-user.model';
+import { LocalUser } from '../../shared/models/local-user.model';
 
 import { Observable } from 'rxjs';
+import { Store, select } from '@ngrx/store';
+import { AppState, selectLocalUsersLoadingCUD } from '../../../store';
+import { DeleteLocalUser } from '../../../store/local-users/actions';
 
 @Component({
   selector: 'app-delete-confirmation',
@@ -16,12 +19,23 @@ export class DeleteConfirmationComponent implements OnInit {
    */
   userToDelete: LocalUser;
 
-  constructor(
-    public dialogRef: MatDialogRef<DeleteConfirmationComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: any) {
+  /**
+   * To indicate if the component is loading
+   *
+   * @type {Observable<boolean>}
+   * @memberof LocalUsersComponent
+   */
+  loading: Observable<boolean>;
 
+  constructor(
+    @Inject(MAT_DIALOG_DATA) public data: any,
+    public dialogRef: MatDialogRef<DeleteConfirmationComponent>,
+    private store: Store<AppState>
+  ) {
     // Get the user to be deleted
     this.userToDelete = data as LocalUser;
+
+    this.loading = this.store.pipe(select(selectLocalUsersLoadingCUD));
   }
 
   ngOnInit() {
@@ -36,5 +50,14 @@ export class DeleteConfirmationComponent implements OnInit {
     this.dialogRef.close();
 
     return this.dialogRef.afterClosed();
+  }
+
+  /**
+   * Dispatch the action to delete the user
+   *
+   * @memberof DeleteConfirmationComponent
+   */
+  deleteUser() {
+    this.store.dispatch(new DeleteLocalUser(this.userToDelete));
   }
 }

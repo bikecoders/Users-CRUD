@@ -1,12 +1,15 @@
-<ngx-loading [show]="loading"></ngx-loading>
+<ngx-loading [show]="loading | async"></ngx-loading>
 
-<div class="no-user" *ngIf="users.length === 0;else usersList">
+<div *ngIf="loading | async" class="no-user">
+</div>
+
+<div class="no-user" *ngIf="isEmpty && !(loading | async); else usersList">
   <h1 class="mat-display-2">There is no user to display</h1>
   <h1 class="mat-display-1">Try creating one</h1>
 </div>
 
 <ng-template #usersList>
-  <div class="wrapper mat-elevation-z8">
+  <div *ngIf="!(loading | async)" class="wrapper mat-elevation-z8">
 
     <div class="filters">
       <mat-form-field>

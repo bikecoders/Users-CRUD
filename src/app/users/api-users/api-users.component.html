@@ -1,16 +1,20 @@
-<ngx-loading [show]="loading"></ngx-loading>
+<ngx-loading [show]="loading | async"></ngx-loading>
 
 <div class="wrapper">
   <mat-list>
-    <mat-list-item *ngFor="let user of users">
+    <mat-list-item *ngFor="let user of users | async">
       <img matListAvatar src="{{user.avatar}}" alt="User Picture">
-      <h3 matLine> {{user.firstName}} </h3>
+      <h3 matLine> {{user.first_name}} </h3>
       <p matLine>
-        <span> {{user.lastName}} </span>
+        <span> {{user.last_name}} </span>
       </p>
     </mat-list-item>
   </mat-list>
 
-  <mat-paginator [length]="apiUsers.total" [pageSize]="apiUsers.perPage" (page)="pageChanged($event)">
+  <mat-paginator
+    [length]="(pagination | async).total"
+    [pageSize]="(pagination | async).per_page"
+    [pageSizeOptions]="pageSizeOptions"
+    (page)="pageChanged($event)">
   </mat-paginator>
 </div>
