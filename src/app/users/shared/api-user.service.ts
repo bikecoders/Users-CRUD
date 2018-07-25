@@ -19,7 +19,7 @@ export class ApiUserService {
    * Fetch the users from the API
    *
    * @param page Page to fetch
-   * @returns {Observable<Array<ApiUser>>} To subscribe and know it loads
+   * @returns {Observable<ApiUserResponse>} To subscribe and know it loads
    */
   getUsers(pagination: Pagination): Observable<ApiUserResponse> {
     const url = `${this.usersEndpoint}?page=${pagination.page}&per_page=${pagination.per_page}`;
@@ -33,7 +33,7 @@ export class ApiUserService {
       map((resp: any) => <ApiUserResponse>resp),
       // Instantiate users
       tap((apiUserResponse: ApiUserResponse) => {
-        apiUserResponse.data.forEach(user => new ApiUser(user));
+        apiUserResponse.data.forEach((user, index, all) => all[index] = new ApiUser(user));
       })
     );
   }
