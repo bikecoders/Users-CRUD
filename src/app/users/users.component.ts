@@ -1,7 +1,6 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 
 import { CreateEditUserComponent } from './create-edit-user/create-edit-user.component';
-import { LocalUser } from './shared/models/local-user.model';
 
 import { filter } from 'rxjs/operators';
 
