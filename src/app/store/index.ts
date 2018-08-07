@@ -1,8 +1,6 @@
-import { ApiUsersState, apiUsersReducer, initialApiUsersState } from './api-users/reducers';
+import { ApiUsersState, apiUsersReducer } from './api-users/reducers';
 import { ActionReducerMap, createSelector } from '@ngrx/store';
 import { LocalUsersState, localUserReducer } from './local-users/reducers';
-import { filter } from 'rxjs/operators';
-
 
 export interface AppState {
   apiUsers: ApiUsersState;

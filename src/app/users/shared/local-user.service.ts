@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
-import { of,  Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { map, timeout, retry, switchMap, toArray } from 'rxjs/operators';
 
 import { LocalUser } from '../shared/models/local-user.model';
@@ -161,7 +161,7 @@ export class LocalUserService {
    * @returns {boolean} True - some user already have that email
    *                    False - no one has it
    */
-  doesEmailExists(emailToCheck: string) {
+  doesEmailExists(emailToCheck: string): boolean {
     // return true; // useful to debug
     return this.users
       // Pass only the email of the local users
