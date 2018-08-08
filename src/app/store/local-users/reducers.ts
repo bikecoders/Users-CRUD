@@ -20,7 +20,7 @@ export interface LocalUsersState {
    */
   loadingReading: boolean;
   /**
-   *
+   * To indicate success when Creating, Updating or Deleting
    *
    * @type {CUDSuccess}
    * @memberof LocalUsersState
