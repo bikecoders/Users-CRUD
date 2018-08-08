@@ -9,6 +9,7 @@ module.exports = function (config) {
       require('karma-jasmine'),
       require('karma-chrome-launcher'),
       require('karma-jasmine-html-reporter'),
+      require('karma-sonarqube-unit-reporter'),
       require('karma-coverage-istanbul-reporter'),
       require('@angular-devkit/build-angular/plugins/karma')
     ],
@@ -19,8 +20,18 @@ module.exports = function (config) {
       dir: require('path').join(__dirname, 'coverage'), reports: [ 'html', 'lcovonly' ],
       fixWebpackSourcePaths: true
     },
-    
-    reporters: ['progress', 'kjhtml'],
+    sonarQubeUnitReporter: {
+      sonarQubeVersion: '7.x',
+      outputFile: 'reports/ut_report.xml',
+      overrideTestDescription: true,
+      testPaths: ['./src/app'],
+      testFilePattern: '.spec.ts',
+      useBrowserName: false
+    },
+    remapCoverageReporter: {
+      lcovonly: './coverage/lcov.info'
+    },
+    reporters: ['progress', 'kjhtml', 'sonarqubeUnit'],
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,
