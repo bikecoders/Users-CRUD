@@ -42,3 +42,8 @@ testem.log
 # System Files
 .DS_Store
 Thumbs.db
+
+# SonarQube sonar-scanner temp directory
+.scannerwork
+# Generic Unit Sonar Reports #
+/reports/
